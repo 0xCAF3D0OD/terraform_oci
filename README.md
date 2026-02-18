@@ -19,9 +19,9 @@
 Exemple de fichier config :
 ```
 [DEFAULT]
-user=ocid1.user.oc1..aaaaaaaa7guzlrtcmsqgwwsx72tlllc6rq
+user=<USER_OCID>
 fingerprint=xx:xx:xx:xx:xx:xx:xx:xx
-tenancy=ocid1.tenancy.oc1..aaaaaaaapho2hgmovkuhdws34bwq
+tenancy=<TENANCY_OCID>
 region=us-ashburn-1
 key_file=~/.oci/oci_api_key.pem
 ```
@@ -33,7 +33,7 @@ key_file=~/.oci/oci_api_key.pem
 ### 4. Création du compartiment "compartiment_Dev"
 - But : Organiser les ressources par environnement
 - Commande : `oci iam compartment create --name "compartiment_Dev" --description "Compartiment de développement" --compartment-id <TENANCY_OCID>`
-- OCID obtenu : `ocid1.compartment.oc1..aaaaaaaa66x3adqtblfqi3g235keznqa`
+- OCID obtenu : `<COMPARTMENT_OCID>`
 
 ### 5. Création de l'utilisateur DevOps "kdi@dev.com"
 - Console Oracle Cloud → Identity → Users → Create User
@@ -43,11 +43,11 @@ key_file=~/.oci/oci_api_key.pem
 Exemple profil KDI :
 ```
 [KDI]
-user=ocid1.user.oc1..aaaaaaaaxjkpmkqfklpkzq
+user=<USER_OCID>
 fingerprint=dc:62:87:d0:20:f6:4f:20
-tenancy=ocid1.tenancy.oc1..aaaaaaaapho2hgmovkuhdws34bwq
+tenancy=<TENANCY_OCID>
 region=us-ashburn-1
-key_file=~/.oci/kdi_keys/oci_api_key.pem
+key_file=path/to/.oci/pem_file
 ```
 
 ---
@@ -65,7 +65,7 @@ oci iam group create \
 ### 7. Compte ADMIN ajoute l'utilisateur KDI au groupe DevOps
 ```bash
 oci iam group add-user \
-  --user-id ocid1.user.oc1..aaaaaaaaxjkpmkqfklpkzq \
+  --user-id ocid1.user.oc1..xxxxxxxxxxxxxx \
   --group-id <DEVOPS_GROUP_OCID> \
   --profile DEFAULT
 ```
@@ -73,12 +73,12 @@ oci iam group add-user \
 ### 8. Compte ADMIN crée les policies IAM
 ```bash
 oci iam policy create \
-  --compartment-id ocid1.tenancy.oc1..aaaaaaaapho2hgmovkuhdws34bwq \
+  --compartment-id <COMPARTMENT_OCID> \
   --name "devops-compartment-dev-policy" \
   --description "Permissions pour le groupe DevOps" \
   --statements '[
-    "Allow group DevOps to manage virtual-network-family in compartment id ocid1.compartment.oc1..aaaaaaaa66x3adqtblfqi3g235keznqa",
-    "Allow group DevOps to manage instance-family in compartment id ocid1.compartment.oc1..aaaaaaaa66x3adqtblfqi3g235keznqa"
+    "Allow group DevOps to manage virtual-network-family in compartment id <COMPARTMENT_OCID>",
+    "Allow group DevOps to manage instance-family in compartment id <COMPARTMENT_OCID>"
   ]' \
   --profile DEFAULT
 ```
