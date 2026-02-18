@@ -85,6 +85,8 @@ oci iam policy create \
 
 ---
 
+### For the Terraform configuration see in the [terraform](./terraform/README.terraform.md)
+
 ## Schéma récapitulatif
 ```
 Tenancy Oracle Cloud
