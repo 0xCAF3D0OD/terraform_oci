@@ -52,7 +52,7 @@ variable "compartment_ocid" {
 ```hcl
 oci_region       = "us-ashburn-1"
 user             = "KDI"
-compartment_ocid = "ocid1.compartment.oc1..aaaaaaaa66x3adqtblfqi3g235keznqa"
+compartment_ocid = "<COMPARTMENT_OCID>"
 ```
 
 ### 13. Initialisation Terraform
