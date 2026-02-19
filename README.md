@@ -1,5 +1,146 @@
 # SETUP Terraform + Oracle Cloud Infrastructure
 
+## Philosophie et Architecture de Sécurité
+
+### L'Objectif : Le Principe du "Moindre Privilège"
+
+Le but de cette configuration est de passer d'un système où tu fais tout avec un compte "Dieu" (Admin) à un système professionnel sécurisé où chaque personne n'a que les accès nécessaires à son travail.
+
+**Problème initial :**
+- Tu utilisais ton compte Admin pour tout
+- **Risque :** Une erreur de frappe ou une clé volée = toute ta Tenancy (compte Oracle) compromise
+
+**Solution mise en place : Gouvernance Cloud**
+
+| Bénéfice | Explication |
+|----------|-------------|
+| **Isolation des risques** | Si l'utilisateur KDI fait une erreur, il ne peut pas supprimer tes ressources d'Administrateur |
+| **Droit à l'erreur** | Le compartiment Dev est un "bac à sable" pour tester sans polluer le compte principal |
+| **Professionnalisme** | Structure identique aux grandes entreprises (Netflix, Uber) : Utilisateur → Groupe → Policy → Compartiment |
+
+---
+
+### Ce que nous avons construit (Le "Quoi")
+
+| Objet | Emplacement dans la console | Son rôle actuel |
+|-------|----------------------------|-----------------|
+| **KDI (User)** | Identity > Domains > Users | Ton identité de travail |
+| **DevOps (Group)** | Identity > Domains > Groups | Le "porte-clés" (KDI est dedans) |
+| **devops-policy** | Identity > Policies | L'autorisation qui nomme le groupe DevOps |
+| **compartiment_Dev** | Identity > Compartments | La zone où le groupe a le droit d'agir |
+
+---
+
+### La Chaîne de Confiance (4 maillons)
+```
+1. Utilisateur (kdi@dev.com)
+   ↓ Compte vide, sans aucun droit par défaut
+   
+2. Groupe (DevOps)
+   ↓ Un "contenant" qui porte les droits (scalable : facile d'ajouter 10 nouveaux employés)
+   
+3. Policy (devops-policy)
+   ↓ Le contrat juridique : "Le groupe DevOps a le droit de gérer les serveurs, mais rien d'autre"
+   
+4. Profil CLI ([KDI])
+   ↓ Identité numérique (clés .pem) pour prouver à Oracle qui tu es
+```
+
+---
+
+### Les 3 Piliers de la Sécurité
+
+#### La Cloison : Le Compartiment (compartiment_Dev)
+
+**Concept :** On arrête de tout mettre dans la "pièce principale" (Root)
+
+- **Action :** Création d'un espace nommé `compartiment_Dev`
+- **Métaphore :** Une pièce sécurisée dans ta maison dont tu as donné les clés à quelqu'un d'autre
+- **Bénéfice :** Isolation complète des ressources de test/dev
+
+#### Le Verrou : La Policy (devops-scoped-policy)
+
+**Concept :** Le document juridique qui définit les droits
+
+- **Action :** Statement ultra-précis
+```
+  Allow group DevOps to manage instance-family in compartment compartiment_Dev
+```
+- **Mot-clé magique :** `in compartment` = la limite de sécurité
+- **Résultat :** En dehors de ce compartiment, le groupe DevOps n'existe pas pour Oracle
+
+#### Le Garde-fou : Le Profil [KDI]
+
+**Concept :** Configuration du terminal pour être prudent par défaut
+
+- **Action :** Identité de KDI (droits limités) en tant que profil par défaut
+- **Protection :** Pour une action "dangereuse", tu dois consciemment ajouter `--profile ADMIN`
+- **Bénéfice :** Protection contre toi-même (erreurs de manipulation)
+
+---
+
+### Comment nous l'avons fait (Le "Comment")
+
+#### 1. Sécurisation de l'accès
+
+Au lieu d'un simple mot de passe, nous utilisons une **paire de clés API (RSA)** :
+```
+Clé privée (.pem)  →  Reste sur ton Mac (jamais partagée)
+       ↓
+Signature numérique
+       ↓
+Clé publique  →  Donnée à Oracle (peut être publique)
+       ↓
+Oracle vérifie la signature
+```
+
+**Analogie :** C'est comme un badge magnétique. Oracle reconnaît la signature de ta clé.
+
+#### 2. Organisation des droits
+
+**Liaison User → Groupe :**
+```bash
+oci iam group add-user --user-id <KDI_OCID> --group-id <DEVOPS_GROUP_OCID>
+```
+
+**Liaison Groupe → Ressources :**
+```
+Allow group DevOps to manage instance-family in compartment compartiment_Dev
+```
+
+---
+
+### Le Résultat Final : Deux "Casquettes"
+
+Tu as maintenant deux identités distinctes sur ton ordinateur :
+
+| Profil | Casquette | Rôle | Utilisation |
+|--------|-----------|------|-------------|
+| **[DEFAULT]** (ou **[ADMIN]**) | 👑 Admin | Propriétaire : créer/supprimer des utilisateurs, payer les factures | Actions rares et sensibles |
+| **[KDI]** | 👷 DevOps | Technicien : créer des serveurs, gérer le réseau dans compartiment_Dev | Travail quotidien |
+
+**Commandes au quotidien :**
+```bash
+# Travail normal (utilise automatiquement [KDI])
+terraform plan
+
+# Action administrative (doit être explicite)
+oci iam user create --name "nouveau-dev" --profile ADMIN
+```
+
+---
+
+### État Final de ton Infrastructure
+
+| Élément | État | Rôle |
+|---------|------|------|
+| **Utilisateur Admin** | Caché derrière `--profile ADMIN` | Le propriétaire, ne touche à rien au quotidien |
+| **Utilisateur KDI** | Profil par défaut | Le technicien qui travaille dans son compartiment |
+| **Compartiment Dev** | Actif | Zone de test isolée et sécurisée |
+| **Policy** | Restrictive | Lie KDI à son compartiment uniquement |
+
+---
+
 ## Phase 1 : Configuration de l'authentification Oracle Cloud
 
 ### 1. Génération d'une clé de signature d'API (paire publique/privée)
