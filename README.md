@@ -249,43 +249,253 @@ Tenancy Oracle Cloud
     └── VCN "internal" (créé par Terraform avec profil KDI)
 ```
 
+### Concepts Clés Oracle Cloud
+
+| Concept OCI | Analogie | Équivalent AWS | Rôle |
+|-------------|----------|----------------|------|
+| **Tenancy** | L'immeuble entier | AWS Account | Compte root, contient tout |
+| **Compartment** | Les étages/pièces | Organizational Units (OU) | Organiser et isoler les ressources |
+| **User** | Une personne | IAM User | Identité individuelle |
+| **Group** | Une équipe | IAM Group | Regrouper des utilisateurs |
+| **Policy** | Le contrat d'accès | IAM Policy | Définir les permissions |
+| **VCN** | Réseau virtuel | VPC | Réseau isolé dans le cloud |
+| **Subnet** | Sous-réseau | Subnet | Segment du réseau |
+| **Instance** | Serveur virtuel | EC2 Instance | Machine virtuelle |
+
 ---
 
-## Concepts clés Oracle Cloud
+## Commandes Utiles
 
-| Concept | Analogie | Équivalent AWS |
-|---------|----------|----------------|
-| Tenancy | L'immeuble entier | AWS Account |
-| Compartiment | Les étages | Organizational Units (OU) |
-| Groupe | L'équipe | IAM Group |
-| Policy | Le contrat d'accès | IAM Policy |
-| VCN | Réseau virtuel | VPC |
-| Subnet | Sous-réseau | Subnet |
-
----
-
-## Commandes utiles
-
-### Vérifier la configuration
+### Vérification de la configuration
 ```bash
-# Tester l'authentification
-oci iam user get --user-id <USER_OCID>
+# Tester l'authentification (profil KDI)
+oci iam user get --user-id ocid1.user.oc1..aaaaaaaaxjkpmkqfklpkzq --profile KDI
 
-# Lister les compartiments
-oci iam compartment list --all
+# Tester l'authentification (profil ADMIN)
+oci iam user get --user-id ocid1.user.oc1..aaaaaaaa7guzlrtcmsqgwwsx72tlllc6rq --profile DEFAULT
 
-# Lister les groupes
-oci iam group list --all
+# Lister les compartiments accessibles
+oci iam compartment list --all --profile KDI
+
+# Lister les groupes (nécessite permissions)
+oci iam group list --all --profile DEFAULT
+
+# Vérifier l'appartenance au groupe
+oci iam group list-users --group-id <GROUP_OCID> --profile DEFAULT
 
 # Lister les policies
-oci iam policy list --compartment-id <TENANCY_OCID> --all
+oci iam policy list --compartment-id <TENANCY_OCID> --all --profile DEFAULT
+
+# Voir le contenu d'une policy
+oci iam policy get --policy-id <POLICY_OCID> --profile DEFAULT
+```
+
+### Gestion des ressources réseau
+```bash
+# Lister les VCNs
+oci network vcn list --compartment-id <COMPARTMENT_OCID> --profile KDI
+
+# Détails d'un VCN
+oci network vcn get --vcn-id <VCN_OCID> --profile KDI
+
+# Lister les subnets
+oci network subnet list --compartment-id <COMPARTMENT_OCID> --profile KDI
+
+# Supprimer un VCN (avec Terraform c'est mieux)
+# oci network vcn delete --vcn-id <VCN_OCID> --profile KDI --force
+```
+
+### Terraform
+```bash
+# Initialiser le projet
+terraform init
+
+# Valider la syntaxe
+terraform validate
+
+# Formater le code
+terraform fmt
+
+# Prévisualiser les changements
+terraform plan
+
+# Appliquer les changements
+terraform apply
+
+# Appliquer sans confirmation interactive
+terraform apply -auto-approve
+
+# Détruire toutes les ressources
+terraform destroy
+
+# Afficher l'état actuel
+terraform show
+
+# Lister les ressources gérées
+terraform state list
+
+# Rafraîchir l'état sans modifications
+terraform refresh
+```
+
+### Debugging
+```bash
+# CLI OCI avec debug
+oci network vcn list --compartment-id <OCID> --debug --profile KDI
+
+# Terraform avec logs détaillés
+export TF_LOG=DEBUG
+terraform plan
+
+# Désactiver les logs
+unset TF_LOG
+
+# Vérifier les fingerprints des clés
+openssl rsa -pubout -outform DER -in ~/.oci/kdi_keys/oci_api_key.pem | openssl md5 -c
 ```
 
 ---
 
-## Ressources et documentation
+## Ressources et Documentation
 
-- Oracle Cloud Documentation : https://docs.oracle.com/en-us/iaas/
-- Terraform OCI Provider : https://registry.terraform.io/providers/oracle/oci/latest/docs
-- OCI CLI Reference : https://docs.oracle.com/en-us/iaas/tools/oci-cli/latest/
-- OCI Free Tier : https://www.oracle.com/cloud/free/
+### Documentation Officielle Oracle
+- **Oracle Cloud Documentation :** https://docs.oracle.com/en-us/iaas/
+- **OCI CLI Reference :** https://docs.oracle.com/en-us/iaas/tools/oci-cli/latest/
+- **API Reference :** https://docs.oracle.com/iaas/api/
+- **Policy Reference :** https://docs.oracle.com/en-us/iaas/Content/Identity/Reference/policyreference.htm
+
+### Terraform
+- **Terraform OCI Provider :** https://registry.terraform.io/providers/oracle/oci/latest/docs
+- **Terraform Registry (exemples) :** https://registry.terraform.io/providers/oracle/oci/latest
+- **Terraform Best Practices :** https://www.terraform.io/docs/cloud/guides/recommended-practices/index.html
+
+### Free Tier et Pricing
+- **OCI Free Tier :** https://www.oracle.com/cloud/free/
+- **OCI Pricing Calculator :** https://www.oracle.com/cloud/cost-estimator.html
+- **Networking Pricing :** https://www.oracle.com/cloud/networking/pricing/
+
+### Tutoriels et exemples
+- **OCI Tutorials :** https://docs.oracle.com/en-us/iaas/Content/GSG/Concepts/baremetalintro.htm
+- **Terraform Examples (GitHub) :** https://github.com/oracle/terraform-provider-oci/tree/master/examples
+
+---
+
+## Troubleshooting : Erreurs Courantes
+
+### Erreur : "NotAuthorizedOrNotFound"
+
+**Symptôme :**
+```
+Error: 404-NotAuthorizedOrNotFound
+Authorization failed or requested resource not found.
+```
+
+**Causes possibles :**
+1. L'utilisateur n'a pas les permissions nécessaires
+2. La ressource n'existe pas
+3. L'utilisateur n'est pas dans le bon groupe
+4. La policy n'est pas correctement configurée
+
+**Solutions :**
+```bash
+# Vérifier l'appartenance au groupe
+oci iam group list-users --group-id <GROUP_OCID> --profile DEFAULT
+
+# Vérifier les policies
+oci iam policy list --compartment-id <TENANCY_OCID> --all --profile DEFAULT
+
+# Vérifier que la ressource existe
+oci iam compartment get --compartment-id <COMPARTMENT_OCID> --profile DEFAULT
+```
+
+### Erreur : "InvalidParameter - Compartment does not exist"
+
+**Symptôme :**
+```
+Error: InvalidParameter
+Compartment {Compartment_Dev} does not exist or is not part of the policy compartment subtree
+```
+
+**Cause :** Nom du compartiment incorrect ou sensible à la casse
+
+**Solution :** Utiliser l'OCID du compartiment plutôt que le nom
+```
+# Au lieu de :
+Allow group DevOps to manage ... in compartment Compartment_Dev
+
+# Utiliser :
+Allow group DevOps to manage ... in compartment id ocid1.compartment.oc1..xxx
+```
+
+### Erreur : Terraform "auth = SecurityToken"
+
+**Symptôme :**
+```
+Error: Service error: NotAuthenticated
+```
+
+**Cause :** Utilisation de SecurityToken avec une clé API
+
+**Solution :** Supprimer la ligne `auth = "SecurityToken"` du provider
+```hcl
+provider "oci" {
+  region              = var.oci_region
+  config_file_profile = var.user
+  # SUPPRIMER: auth = "SecurityToken"
+}
+```
+
+### Erreur : Fingerprint mismatch
+
+**Symptôme :**
+```
+Error: authorization failed or requested resource not found
+```
+
+**Cause :** Le fingerprint dans le fichier config ne correspond pas à la clé uploadée
+
+**Solution :**
+```bash
+# Calculer le fingerprint de ta clé locale
+openssl rsa -pubout -outform DER -in ~/.oci/kdi_keys/oci_api_key.pem | openssl md5 -c
+
+# Comparer avec celui dans la console Oracle Cloud
+# User Settings → API Keys → Voir le fingerprint
+
+# Si différent, re-upload la clé publique
+```
+
+---
+
+## Checklist de Sécurité
+
+### Avant de commencer
+
+- [ ] Activer MFA (Multi-Factor Authentication) sur le compte Admin
+- [ ] Créer des clés API séparées pour chaque utilisateur
+- [ ] Ne jamais partager les clés privées (.pem)
+- [ ] Stocker les clés privées avec permissions restrictives (`chmod 600`)
+
+### Configuration des droits
+
+- [ ] Principe du moindre privilège : donner uniquement les droits nécessaires
+- [ ] Utiliser des groupes plutôt que des permissions directes sur utilisateurs
+- [ ] Limiter les policies aux compartiments spécifiques (pas `in tenancy`)
+- [ ] Documenter chaque policy créée
+
+### Gestion du code Terraform
+
+- [ ] Ne jamais commiter `terraform.tfvars` avec des secrets
+- [ ] Utiliser un `.gitignore` approprié
+- [ ] Versionner le code dans Git
+- [ ] Utiliser Terraform State en remote (S3, OCI Object Storage)
+- [ ] Activer le chiffrement du state file
+
+### Monitoring et audit
+
+- [ ] Activer Cloud Guard (détection de menaces)
+- [ ] Configurer des alertes de coûts
+- [ ] Réviser régulièrement les permissions IAM
+- [ ] Utiliser des tags pour tracer les ressources
+
+---
