@@ -4,7 +4,7 @@
 
 ### L'Objectif : Le Principe du "Moindre Privilège"
 
-Le but de cette configuration est de passer d'un système où tu fais tout avec un compte "Dieu" (Admin) à un système professionnel sécurisé où chaque personne n'a que les accès nécessaires à son travail.
+Le but de cette configuration est de passer d'un système où on fait tout avec un compte "Dieu" (Admin) à un système cloisonner sécurisé où les utilisateurs n'ont que les accès nécessaires à son travail.
 
 **Problème initial :**
 - Tu utilisais ton compte Admin pour tout
