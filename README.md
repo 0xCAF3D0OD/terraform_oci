@@ -16,7 +16,7 @@ Le but de cette configuration est de passer d'un système où on fait tout avec 
 |----------|-------------|
 | **Isolation des risques** | Si l'utilisateur KDI fait une erreur, il ne peut pas supprimer tes ressources d'Administrateur |
 | **Droit à l'erreur** | Le compartiment Dev est un "bac à sable" pour tester sans polluer le compte principal |
-| **Professionnalisme** | Structure identique aux grandes entreprises (Netflix, Uber) : Utilisateur → Groupe → Policy → Compartiment |
+| **Professionnalisme** | Structure plus pro: Utilisateur → Groupe → Policy → Compartiment |
 
 ---
 
