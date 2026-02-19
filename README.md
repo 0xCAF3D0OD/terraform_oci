@@ -305,47 +305,10 @@ oci network subnet list --compartment-id <COMPARTMENT_OCID> --profile KDI
 # oci network vcn delete --vcn-id <VCN_OCID> --profile KDI --force
 ```
 
-### Terraform
-```bash
-# Initialiser le projet
-terraform init
-
-# Valider la syntaxe
-terraform validate
-
-# Formater le code
-terraform fmt
-
-# Prévisualiser les changements
-terraform plan
-
-# Appliquer les changements
-terraform apply
-
-# Appliquer sans confirmation interactive
-terraform apply -auto-approve
-
-# Détruire toutes les ressources
-terraform destroy
-
-# Afficher l'état actuel
-terraform show
-
-# Lister les ressources gérées
-terraform state list
-
-# Rafraîchir l'état sans modifications
-terraform refresh
-```
-
 ### Debugging
 ```bash
 # CLI OCI avec debug
 oci network vcn list --compartment-id <OCID> --debug --profile KDI
-
-# Terraform avec logs détaillés
-export TF_LOG=DEBUG
-terraform plan
 
 # Désactiver les logs
 unset TF_LOG
@@ -363,11 +326,6 @@ openssl rsa -pubout -outform DER -in ~/.oci/kdi_keys/oci_api_key.pem | openssl m
 - **OCI CLI Reference :** https://docs.oracle.com/en-us/iaas/tools/oci-cli/latest/
 - **API Reference :** https://docs.oracle.com/iaas/api/
 - **Policy Reference :** https://docs.oracle.com/en-us/iaas/Content/Identity/Reference/policyreference.htm
-
-### Terraform
-- **Terraform OCI Provider :** https://registry.terraform.io/providers/oracle/oci/latest/docs
-- **Terraform Registry (exemples) :** https://registry.terraform.io/providers/oracle/oci/latest
-- **Terraform Best Practices :** https://www.terraform.io/docs/cloud/guides/recommended-practices/index.html
 
 ### Free Tier et Pricing
 - **OCI Free Tier :** https://www.oracle.com/cloud/free/
@@ -425,24 +383,6 @@ Allow group DevOps to manage ... in compartment Compartment_Dev
 
 # Utiliser :
 Allow group DevOps to manage ... in compartment id ocid1.compartment.oc1..xxx
-```
-
-### Erreur : Terraform "auth = SecurityToken"
-
-**Symptôme :**
-```
-Error: Service error: NotAuthenticated
-```
-
-**Cause :** Utilisation de SecurityToken avec une clé API
-
-**Solution :** Supprimer la ligne `auth = "SecurityToken"` du provider
-```hcl
-provider "oci" {
-  region              = var.oci_region
-  config_file_profile = var.user
-  # SUPPRIMER: auth = "SecurityToken"
-}
 ```
 
 ### Erreur : Fingerprint mismatch
