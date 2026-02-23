@@ -51,7 +51,7 @@ variable "compartment_ocid" {
 ### 12. Fichier terraform.tfvars
 ```hcl
 oci_region       = "us-ashburn-1"
-user             = "KDI"
+user             = "X"
 compartment_ocid = "<COMPARTMENT_OCID>"
 ```
 
@@ -66,7 +66,7 @@ terraform init
 ## Phase 5 : Création des ressources
 
 ### 14. Création du VCN via Terraform
-Maintenant KDI (via son appartenance au groupe DevOps) a les permissions pour créer des ressources.
+Maintenant X (via son appartenance au groupe DevOps) a les permissions pour créer des ressources.
 
 Exemple de ressource VCN dans main.tf :
 ```hcl
@@ -136,7 +136,7 @@ terraform refresh
 ### Debugging
 ```bash
 # CLI OCI avec debug
-oci network vcn list --compartment-id <OCID> --debug --profile KDI
+oci network vcn list --compartment-id <OCID> --debug --profile X
 
 # Terraform avec logs détaillés
 export TF_LOG=DEBUG
@@ -146,12 +146,12 @@ terraform plan
 unset TF_LOG
 
 # Vérifier les fingerprints des clés
-openssl rsa -pubout -outform DER -in ~/.oci/kdi_keys/oci_api_key.pem | openssl md5 -c
+openssl rsa -pubout -outform DER -in ~/.oci/X_keys/oci_api_key.pem | openssl md5 -c
 ```
 
 ---
 
-## Ressources et Documentation
+## Ressources et Documention
 
 ### Terraform
 - **Terraform OCI Provider :** https://registry.terraform.io/providers/oracle/oci/latest/docs
@@ -216,5 +216,3 @@ provider "oci" {
 - [ ] Configurer des alertes de coûts
 - [ ] Réviser régulièrement les permissions IAM
 - [ ] Utiliser des tags pour tracer les ressources
-
----
