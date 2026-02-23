@@ -7,25 +7,25 @@
 Le but de cette configuration est de passer d'un système où on fait tout avec un compte "Dieu" (Admin) à un système cloisonné, sécurisé où les utilisateurs n'ont que les accès nécessaires à leur travail.
 
 **Problème initial :**
-- Tu utilisais ton compte Admin pour tout
-- **Risque :** Une erreur de frappe ou une clé volée = toute ta Tenancy (compte Oracle) compromise
+- On utilise son compte Admin pour tout
+- **Risque :** Une erreur de frappe ou une clé volée = toute la Tenancy (compte Oracle) compromise
 
 **Solution mise en place : Gouvernance Cloud**
 
 | Bénéfice | Explication |
 |----------|-------------|
-| **Isolation des risques** | Si l'utilisateur KDI fait une erreur, il ne peut pas supprimer tes ressources d'Administrateur |
+| **Isolation des risques** | Si l'utilisateur X fait une erreur, il ne peut pas supprimer les ressources d'Administrateur |
 | **Droit à l'erreur** | Le compartiment Dev est un "bac à sable" pour tester sans polluer le compte principal |
 | **Professionnalisme** | Structure plus pro: Utilisateur → Groupe → Policy → Compartiment |
 
 ---
 
-### Ce que nous avons construit (Le "Quoi")
+### Ce qui as été construit (Le "Quoi")
 
 | Objet | Emplacement dans la console | Son rôle actuel |
 |-------|----------------------------|-----------------|
-| **KDI (User)** | Identity > Domains > Users | Ton identité de travail |
-| **DevOps (Group)** | Identity > Domains > Groups | Le "porte-clés" (KDI est dedans) |
+| **X (User)** | Identity > Domains > Users | son identité de travail |
+| **DevOps (Group)** | Identity > Domains > Groups | Le "porte-clés" (X est dedans) |
 | **devops-policy** | Identity > Policies | L'autorisation qui nomme le groupe DevOps |
 | **compartiment_Dev** | Identity > Compartments | La zone où le groupe a le droit d'agir |
 
@@ -33,7 +33,7 @@ Le but de cette configuration est de passer d'un système où on fait tout avec 
 
 ### La Chaîne de Confiance (4 maillons)
 ```
-1. Utilisateur (kdi@dev.com)
+1. Utilisateur (X@dev.com)
    ↓ Compte vide, sans aucun droit par défaut
    
 2. Groupe (DevOps)
@@ -42,7 +42,7 @@ Le but de cette configuration est de passer d'un système où on fait tout avec 
 3. Policy (devops-policy)
    ↓ Le contrat juridique : "Le groupe DevOps a le droit de gérer les serveurs, mais rien d'autre"
    
-4. Profil CLI ([KDI])
+4. Profil CLI ([X])
    ↓ Identité numérique (clés .pem) pour prouver à Oracle qui tu es
 ```
 
@@ -55,7 +55,7 @@ Le but de cette configuration est de passer d'un système où on fait tout avec 
 **Concept :** On arrête de tout mettre dans la "pièce principale" (Root)
 
 - **Action :** Création d'un espace nommé `compartiment_Dev`
-- **Métaphore :** Une pièce sécurisée dans ta maison dont tu as donné les clés à quelqu'un d'autre
+- **Métaphore :** Une pièce sécurisée dans une maison dont on as donné les clés à quelqu'un d'autre
 - **Bénéfice :** Isolation complète des ressources de test/dev
 
 #### Le Verrou : La Policy (devops-scoped-policy)
@@ -69,23 +69,23 @@ Le but de cette configuration est de passer d'un système où on fait tout avec 
 - **Mot-clé magique :** `in compartment` = la limite de sécurité
 - **Résultat :** En dehors de ce compartiment, le groupe DevOps n'existe pas pour Oracle
 
-#### Le Garde-fou : Le Profil [KDI]
+#### Le Garde-fou : Le Profil [X]
 
 **Concept :** Configuration du terminal pour être prudent par défaut
 
-- **Action :** Identité de KDI (droits limités) en tant que profil par défaut
+- **Action :** Identité de X (droits limités) en tant que profil par défaut
 - **Protection :** Pour une action "dangereuse", tu dois consciemment ajouter `--profile ADMIN`
 - **Bénéfice :** Protection contre toi-même (erreurs de manipulation)
 
 ---
 
-### Comment nous l'avons fait (Le "Comment")
+### Comment ca été fait (Le "Comment")
 
 #### 1. Sécurisation de l'accès
 
-Au lieu d'un simple mot de passe, nous utilisons une **paire de clés API (RSA)** :
+Au lieu d'un simple mot de passe, il faut utiliser une **paire de clés API (RSA)** :
 ```
-Clé privée (.pem)  →  Reste sur ton Mac (jamais partagée)
+Clé privée (.pem)  →  Reste sur son Mac (jamais partagée)
        ↓
 Signature numérique
        ↓
@@ -94,13 +94,13 @@ Clé publique  →  Donnée à Oracle (peut être publique)
 Oracle vérifie la signature
 ```
 
-**Analogie :** C'est comme un badge magnétique. Oracle reconnaît la signature de ta clé.
+**Analogie :** C'est comme un badge magnétique. Oracle reconnaît la signature de la clé de l'utilisateur.
 
 #### 2. Organisation des droits
 
 **Liaison User → Groupe :**
 ```bash
-oci iam group add-user --user-id <KDI_OCID> --group-id <DEVOPS_GROUP_OCID>
+oci iam group add-user --user-id <X_OCID> --group-id <DEVOPS_GROUP_OCID>
 ```
 
 **Liaison Groupe → Ressources :**
@@ -112,16 +112,16 @@ Allow group DevOps to manage instance-family in compartment compartiment_Dev
 
 ### Le Résultat Final : Deux "Casquettes"
 
-Tu as maintenant deux identités distinctes sur ton ordinateur :
+Tu as maintenant deux identités distinctes sur son ordinateur :
 
 | Profil | Casquette | Rôle | Utilisation |
 |--------|-----------|------|-------------|
 | **[DEFAULT]** (ou **[ADMIN]**) | 👑 Admin | Propriétaire : créer/supprimer des utilisateurs, payer les factures | Actions rares et sensibles |
-| **[KDI]** | 👷 DevOps | Technicien : créer des serveurs, gérer le réseau dans compartiment_Dev | Travail quotidien |
+| **[X]** | 👷 DevOps | Technicien : créer des serveurs, gérer le réseau dans compartiment_Dev | Travail quotidien |
 
 **Commandes au quotidien :**
 ```bash
-# Travail normal (utilise automatiquement [KDI])
+# Travail normal (utilise automatiquement [X])
 terraform plan
 
 # Action administrative (doit être explicite)
@@ -130,14 +130,14 @@ oci iam user create --name "nouveau-dev" --profile ADMIN
 
 ---
 
-### État Final de ton Infrastructure
+### État Final de son Infrastructure
 
 | Élément | État | Rôle |
 |---------|------|------|
 | **Utilisateur Admin** | Caché derrière `--profile ADMIN` | Le propriétaire, ne touche à rien au quotidien |
-| **Utilisateur KDI** | Profil par défaut | Le technicien qui travaille dans son compartiment |
+| **Utilisateur X** | Profil par défaut | Le technicien qui travaille dans son compartiment |
 | **Compartiment Dev** | Actif | Zone de test isolée et sécurisée |
-| **Policy** | Restrictive | Lie KDI à son compartiment uniquement |
+| **Policy** | Restrictive | Lie X à son compartiment uniquement |
 
 ---
 
@@ -176,14 +176,14 @@ key_file=~/.oci/oci_api_key.pem
 - Commande : `oci iam compartment create --name "compartiment_Dev" --description "Compartiment de développement" --compartment-id <TENANCY_OCID>`
 - OCID obtenu : `<COMPARTMENT_OCID>`
 
-### 5. Création de l'utilisateur DevOps "kdi@dev.com"
+### 5. Création de l'utilisateur DevOps "X@dev.com"
 - Console Oracle Cloud → Identity → Users → Create User
 - Génération de ses clés API (via la console)
-- Configuration du profil [KDI] dans `~/.oci/config`
+- Configuration du profil [X] dans `~/.oci/config`
 
-Exemple profil KDI :
+Exemple profil X :
 ```
-[KDI]
+[X]
 user=<USER_OCID>
 fingerprint=dc:62:87:d0:20:f6:4f:20
 tenancy=<TENANCY_OCID>
@@ -203,7 +203,7 @@ oci iam group create \
   --profile DEFAULT
 ```
 
-### 7. Compte ADMIN ajoute l'utilisateur KDI au groupe DevOps
+### 7. Compte ADMIN ajoute l'utilisateur X au groupe DevOps
 ```bash
 oci iam group add-user \
   --user-id ocid1.user.oc1..xxxxxxxxxxxxxx \
@@ -232,21 +232,21 @@ oci iam policy create \
 ```
 Tenancy Oracle Cloud
 │
-├── Utilisateur ADMIN (kevin.dinocera@protonmail.com)
+├── Utilisateur ADMIN (x@protonmail.com)
 │   └── Profil [DEFAULT] dans ~/.oci/config
 │
-├── Utilisateur KDI (kdi@dev.com)
-│   └── Profil [KDI] dans ~/.oci/config
+├── Utilisateur X (X@dev.com)
+│   └── Profil [X] dans ~/.oci/config
 │
 ├── Groupe DevOps
-│   └── Contient : KDI
+│   └── Contient : X
 │
 ├── Policy "devops-compartment-dev-policy"
 │   └── "Allow group DevOps to manage virtual-network-family..."
 │   └── "Allow group DevOps to manage instance-family..."
 │
 └── Compartiment "compartiment_Dev"
-    └── VCN "internal" (créé par Terraform avec profil KDI)
+    └── VCN "internal" (créé par Terraform avec profil X)
 ```
 
 ### Concepts Clés Oracle Cloud
@@ -268,14 +268,14 @@ Tenancy Oracle Cloud
 
 ### Vérification de la configuration
 ```bash
-# Tester l'authentification (profil KDI)
-oci iam user get --user-id ocid1.user.oc1..aaaaaaaaxjkpmkqfklpkzq --profile KDI
+# tester l'authentification (profil X)
+oci iam user get --user-id ocid1.user.oc1..aaaaaaaaxjkpmkqfklpkzq --profile X
 
-# Tester l'authentification (profil ADMIN)
+# lester l'authentification (profil ADMIN)
 oci iam user get --user-id ocid1.user.oc1..aaaaaaaa7guzlrtcmsqgwwsx72tlllc6rq --profile DEFAULT
 
 # Lister les compartiments accessibles
-oci iam compartment list --all --profile KDI
+oci iam compartment list --all --profile X
 
 # Lister les groupes (nécessite permissions)
 oci iam group list --all --profile DEFAULT
@@ -293,28 +293,28 @@ oci iam policy get --policy-id <POLICY_OCID> --profile DEFAULT
 ### Gestion des ressources réseau
 ```bash
 # Lister les VCNs
-oci network vcn list --compartment-id <COMPARTMENT_OCID> --profile KDI
+oci network vcn list --compartment-id <COMPARTMENT_OCID> --profile X
 
 # Détails d'un VCN
-oci network vcn get --vcn-id <VCN_OCID> --profile KDI
+oci network vcn get --vcn-id <VCN_OCID> --profile X
 
 # Lister les subnets
-oci network subnet list --compartment-id <COMPARTMENT_OCID> --profile KDI
+oci network subnet list --compartment-id <COMPARTMENT_OCID> --profile X
 
 # Supprimer un VCN (avec Terraform c'est mieux)
-# oci network vcn delete --vcn-id <VCN_OCID> --profile KDI --force
+# oci network vcn delete --vcn-id <VCN_OCID> --profile X --force
 ```
 
 ### Debugging
 ```bash
 # CLI OCI avec debug
-oci network vcn list --compartment-id <OCID> --debug --profile KDI
+oci network vcn list --compartment-id <OCID> --debug --profile X
 
 # Désactiver les logs
 unset TF_LOG
 
 # Vérifier les fingerprints des clés
-openssl rsa -pubout -outform DER -in ~/.oci/kdi_keys/oci_api_key.pem | openssl md5 -c
+openssl rsa -pubout -outform DER -in ~/.oci/X_keys/oci_api_key.pem | openssl md5 -c
 ```
 
 ---
@@ -397,7 +397,7 @@ Error: authorization failed or requested resource not found
 **Solution :**
 ```bash
 # Calculer le fingerprint de ta clé locale
-openssl rsa -pubout -outform DER -in ~/.oci/kdi_keys/oci_api_key.pem | openssl md5 -c
+openssl rsa -pubout -outform DER -in ~/.oci/X_keys/oci_api_key.pem | openssl md5 -c
 
 # Comparer avec celui dans la console Oracle Cloud
 # User Settings → API Keys → Voir le fingerprint
@@ -434,7 +434,7 @@ openssl rsa -pubout -outform DER -in ~/.oci/kdi_keys/oci_api_key.pem | openssl m
 ### Monitoring et audit
 
 - [ ] Activer Cloud Guard (détection de menaces)
-- [ ] Configurer des alertes de coûts
+- [ ] Configurer des alerles de coûts
 - [ ] Réviser régulièrement les permissions IAM
 - [ ] Utiliser des tags pour tracer les ressources
 
