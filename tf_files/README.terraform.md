@@ -57,8 +57,8 @@ compartment_ocid = "<COMPARTMENT_OCID>"
 
 ### 13. Initialisation Terraform
 ```bash
-cd terraform-oci
-terraform init
+cd tf_files-oci
+tf_files init
 ```
 
 ---
@@ -80,8 +80,8 @@ resource "oci_core_vcn" "internal" {
 
 Commandes Terraform :
 ```bash
-terraform plan    # Prévisualisation
-terraform apply   # Création des ressources
+tf_files plan    # Prévisualisation
+tf_files apply   # Création des ressources
 ```
 
 ---
@@ -89,11 +89,11 @@ terraform apply   # Création des ressources
 ## Schéma récapitulatif
 
 ```bash
-terraform init       # Initialiser le projet
-terraform validate   # Valider la syntaxe
-terraform plan       # Prévisualiser les changements
-terraform apply      # Appliquer les changements
-terraform destroy    # Détruire les ressources
+tf_files init       # Initialiser le projet
+tf_files validate   # Valider la syntaxe
+tf_files plan       # Prévisualiser les changements
+tf_files apply      # Appliquer les changements
+tf_files destroy    # Détruire les ressources
 ```
 
 ---
@@ -103,34 +103,34 @@ terraform destroy    # Détruire les ressources
 ### Terraform
 ```bash
 # Initialiser le projet
-terraform init
+tf_files init
 
 # Valider la syntaxe
-terraform validate
+tf_files validate
 
 # Formater le code
-terraform fmt
+tf_files fmt
 
 # Prévisualiser les changements
-terraform plan
+tf_files plan
 
 # Appliquer les changements
-terraform apply
+tf_files apply
 
 # Appliquer sans confirmation interactive
-terraform apply -auto-approve
+tf_files apply -auto-approve
 
 # Détruire toutes les ressources
-terraform destroy
+tf_files destroy
 
 # Afficher l'état actuel
-terraform show
+tf_files show
 
 # Lister les ressources gérées
-terraform state list
+tf_files state list
 
 # Rafraîchir l'état sans modifications
-terraform refresh
+tf_files refresh
 ```
 
 ### Debugging
@@ -140,7 +140,7 @@ oci network vcn list --compartment-id <OCID> --debug --profile X
 
 # Terraform avec logs détaillés
 export TF_LOG=DEBUG
-terraform plan
+tf_files plan
 
 # Désactiver les logs
 unset TF_LOG

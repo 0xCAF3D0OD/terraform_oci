@@ -122,7 +122,7 @@ Tu as maintenant deux identités distinctes sur son ordinateur :
 **Commandes au quotidien :**
 ```bash
 # Travail normal (utilise automatiquement [X])
-terraform plan
+tf_files plan
 
 # Action administrative (doit être explicite)
 oci iam user create --name "nouveau-dev" --profile ADMIN
@@ -226,7 +226,7 @@ oci iam policy create \
 
 ---
 
-### For the Terraform configuration see in the [terraform](./terraform/README.terraform.md)
+### For the Terraform configuration see in the [terraform](tf_files/README.terraform.md)
 
 ## Schéma récapitulatif
 ```
