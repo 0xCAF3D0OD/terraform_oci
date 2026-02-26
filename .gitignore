@@ -1,5 +1,6 @@
 .idea/
 
+.env
 # Local .tf_files directories
 .terraform/
 

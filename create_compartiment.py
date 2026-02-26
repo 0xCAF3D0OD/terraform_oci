@@ -1,34 +1,82 @@
 import oci
 from oci.config import from_file
+import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+from rich.console import Console
+from rich.table import Table
+import os
 
 config = {
     "oci_config": {},
     "username": "",
     "tenancy_ocid": None,
+    "compartment_name": "",
     "parent_compartment_id": None,
-    "parent_compartment_name": None
+    "parent_compartment_name": ""
 }
 
+def select_from_list_rich(items: list, prompt: str = "Select an option") -> str:
+    console = Console()
 
-# def define_tags() -> tuple[dict, dict]:
-#     freeform_tags = {
-#         'env': 'dev',
-#         'team': 'devops',
-#         'project': 'educhat'
-#     }
-#
-#     defined_tags = {
-#         'Oracle-Tags': {
-#             'CreatedBy': config["username"],
-#             'Environment': 'development'
-#         }
-#     }
-#
-#     return freeform_tags, defined_tags
+    table = Table(title=prompt)
+    table.add_column("Option", style="cyan")
+    table.add_column("Index", style="yellow")
 
+    for i, item in enumerate(items, 1):
+        table.add_row(item, str(i))
+
+    console.print(table)
+
+    while True:
+        try:
+            choice = int(input("Enter number: "))
+            if 1 <= choice <= len(items):
+                return items[choice - 1]
+        except ValueError:
+            pass
+        console.print("[red]Invalid input[/red]")
+
+def define_tags() -> tuple[dict, dict]:
+    cmp_tag, project_tag, env_tag = config["compartment_name"].split("-")
+    freeform_tags = {
+        'env': env_tag,
+        'team': 'devops',
+        'project': project_tag,
+        'created_by': config["username"],
+        "backup-required": "false" if env_tag == "dev" else "true"
+    }
+
+    defined_tags = {
+        'Oracle-Tags': {
+            'CreatedBy': config["username"],
+            'Environment': env_tag,
+            "CreatedOn": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+    }
+
+    return freeform_tags, defined_tags
+
+def resume_compartment_data(description: str, freeform_tags, defined_tags) -> None:
+    # Codes ANSI
+    GREEN = "\033[1;32m"    # Bold Green (valeurs)
+    YELLOW = "\033[1;33m"   # Bold Yellow (labels)
+    RESET = "\033[0m"       # Reset
+
+    print(f"\n{YELLOW}=== Compartment Configuration ==={RESET}\n"
+          f"{YELLOW}Parent compartment:{RESET} {GREEN}{config['parent_compartment_name']}{RESET} → {GREEN}{config['parent_compartment_id']}{RESET}\n"
+          f"{YELLOW}Compartment name:{RESET} {GREEN}{config['compartment_name']}{RESET}\n"
+          f"{YELLOW}Description:{RESET} {GREEN}{description}{RESET}\n"
+          f"{YELLOW}Freeform tags:{RESET} {GREEN}{freeform_tags}{RESET}\n"
+          f"{YELLOW}Defined tags:{RESET} {GREEN}{defined_tags}{RESET}\n"
+          f"{YELLOW}{'='*35}{RESET}\n")
 
 def compartment_requirements() -> tuple[str, str]:
     compartment_name = input("compartment_name: ")
+    if compartment_name == config["parent_compartment_name"]:
+        print("compartment_name already exists, retry")
+        compartment_name = input("compartment_name: ")
     compartment_description = input("compartment_description: ")
     if compartment_name == "" or compartment_description == "":
         raise ValueError('please input compartment_name and compartment_description')
@@ -37,22 +85,38 @@ def compartment_requirements() -> tuple[str, str]:
                          "400 for compartment_description")
     return compartment_name, compartment_description
 
-
 def create_compartment(identity_client: oci.identity.IdentityClient) -> None:
     try:
-        name, description = compartment_requirements()
-        # freeform_tags, defined_tags = define_tags()
+        config["compartment_name"], description = compartment_requirements()
+        freeform_tags, defined_tags = define_tags()
+        while True:
 
-        print(f"name: {name}, description: {description}")
-        create_compartment_response = identity_client.create_compartment(
-            create_compartment_details=oci.identity.models.CreateCompartmentDetails(
-                compartment_id=config["parent_compartment_id"],
-                name=name,
-                description=description,
-                # freeform_tags=freeform_tags,
-                # defined_tags=defined_tags
-            ))
-        print(create_compartment_response.data)
+            resume_compartment_data(description, freeform_tags, defined_tags)
+
+            choice = input("do you want to create this new compartment: Y/n: ")
+            if choice == "Y":
+                create_compartment_response = identity_client.create_compartment(
+                    create_compartment_details=oci.identity.models.CreateCompartmentDetails(
+                        compartment_id=config["parent_compartment_id"],
+                        name=config["compartment_name"],
+                        description=description,
+                        freeform_tags=freeform_tags,
+                        defined_tags=defined_tags
+                    ))
+                print(create_compartment_response.data)
+                break
+            elif choice == "n":
+                field = input("What to modify? (name/description) or nothing for exit: ").strip().lower()
+                if field == "name":
+                    config['compartment_name'] = input("New name: ").strip()
+                    freeform_tags, defined_tags = define_tags()
+                elif field == "description":
+                    description = input("New description: ").strip()
+                else:
+                    print("exit the programme")
+                    return
+            else:
+                print("❌ Choix invalide")
     except oci.exceptions.ConfigFileNotFound as e:
         print(f'OCI ERROR Config file not found: {e}')
     except oci.exceptions.ClientError as e:
@@ -60,7 +124,7 @@ def create_compartment(identity_client: oci.identity.IdentityClient) -> None:
     except oci.exceptions.ConnectTimeout as e:
         print(f"OCI ERROR timeout: {e}")
     except Exception as e:
-        print(f"Exception in create_compartment: {e}")
+        print(f"Error in create_compartment: {e}")
 
 
 def compartment_management(identity_client: oci.identity.IdentityClient) -> None:
@@ -87,7 +151,7 @@ def compartment_management(identity_client: oci.identity.IdentityClient) -> None
     except Exception as e:
         print(f"Exception in compartment management: {e}")
 
-
+def get_user_list(identity_client: oci.identity.IdentityClient) -> list:
 def main():
     try:
         while True:
@@ -96,7 +160,7 @@ def main():
                 config["username"] = input("enter required username for compartment creation: ")
                 if config["username"] == "":
                     raise ValueError("please input username for compartment creation")
-
+                select_from_list_rich()
                 config["oci_config"] = from_file("~/.oci/config", config["username"])
                 identity_client = oci.identity.IdentityClient(config["oci_config"])
                 tenancy = identity_client.get_tenancy(config["oci_config"]["tenancy"]).data
