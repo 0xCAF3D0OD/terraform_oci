@@ -264,7 +264,7 @@ Tenancy Oracle Cloud
 
 ---
 
-![schema](img/infra_fonct.svg)
+![schema](img/infra-oci.png)
 
 ---
 
