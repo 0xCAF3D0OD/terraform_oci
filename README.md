@@ -264,6 +264,10 @@ Tenancy Oracle Cloud
 
 ---
 
+![schema](img/infra_fonct.svg)
+
+---
+
 ## Commandes Utiles
 
 ### Vérification de la configuration
