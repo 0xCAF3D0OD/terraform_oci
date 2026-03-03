@@ -154,15 +154,10 @@ def compartment_management(identity_client: oci.identity.IdentityClient) -> None
 def get_user_list() -> None:
     config_file = oci.config.from_file("~/.oci/config")
 
-    # 2. Définir l'endpoint spécifique de votre domaine d'identité
-    domain_endpoint = "https://idcs-d587d08168504829a27dc33538d4cbe3.identity.oraclecloud.com:443"
-
-    # 3. Initialiser le client IdentityDomains avec l'endpoint
-    identity_domains_client = oci.identity_domains.IdentityDomainsClient(config_file, domain_endpoint)
-
+    identity_client = oci.identity.IdentityClient(config=config_file)
     # 4. Lister les utilisateurs du domaine
     # Note : les résultats sont dans .data.resources pour ce client
-    response = identity_domains_client.list_users()
+    response = identity_client.list_users(os.getenv("TENANCY_OCID"))
 
     for user in response.data.resources:
         # Équivalent du grep "name" (affiche le nom d'affichage ou le login)
