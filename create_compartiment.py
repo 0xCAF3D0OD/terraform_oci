@@ -1,12 +1,20 @@
+from __future__ import annotations
+
 import oci
-from oci.config import from_file
 import datetime
 from dotenv import load_dotenv
+from typing import Tuple, Any
+import inquirer
 
 load_dotenv()
 from rich.console import Console
 from rich.table import Table
 import os
+
+# Codes ANSI
+GREEN = "\033[1;32m"  # Bold Green (valeurs)
+YELLOW = "\033[1;33m"  # Bold Yellow (labels)
+RESET = "\033[0m"  # Reset
 
 config = {
     "oci_config": {},
@@ -59,10 +67,6 @@ def define_tags() -> tuple[dict, dict]:
     return freeform_tags, defined_tags
 
 def resume_compartment_data(description: str, freeform_tags, defined_tags) -> None:
-    # Codes ANSI
-    GREEN = "\033[1;32m"    # Bold Green (valeurs)
-    YELLOW = "\033[1;33m"   # Bold Yellow (labels)
-    RESET = "\033[0m"       # Reset
 
     print(f"\n{YELLOW}=== Compartment Configuration ==={RESET}\n"
           f"{YELLOW}Parent compartment:{RESET} {GREEN}{config['parent_compartment_name']}{RESET} → {GREEN}{config['parent_compartment_id']}{RESET}\n"
@@ -151,33 +155,28 @@ def compartment_management(identity_client: oci.identity.IdentityClient) -> None
     except Exception as e:
         print(f"Exception in compartment management: {e}")
 
-def get_user_list() -> None:
-    config_file = oci.config.from_file("~/.oci/config")
 
-    identity_client = oci.identity.IdentityClient(config=config_file)
-    # 4. Lister les utilisateurs du domaine
-    # Note : les résultats sont dans .data.resources pour ce client
-    response = identity_client.list_users(os.getenv("TENANCY_OCID"))
+def inquire_display(dictionary: dict[str, str], key_word: str) ->  dict[Any, Any] | None | Any:
+    questions = [
+        inquirer.List(f'{key_word}',
+                      message=f"{YELLOW}What {key_word} do you need?{RESET}",
+                      choices=[key for key in dictionary.keys() if not None],
+                      ),
+    ]
+    answers = inquirer.prompt(questions)
+    print(f"{GREEN}you have choosen {answers[f'{key_word}']}{RESET}")
+    return answers
 
-    for user in response.data.resources:
-        # Équivalent du grep "name" (affiche le nom d'affichage ou le login)
-        print(f"User Name: {user.user_name} | Display Name: {user.display_name}")
-
-def main():
+def creating_compartment(user_credential: dict[str, str]) -> None:
     try:
         while True:
             choice = input("do you want to create compartment: Y/n: ")
             if choice == "Y":
-                get_user_list()
-                # config["username"] = input("enter required username for compartment creation: ")
-                # if config["username"] == "":
-                #     raise ValueError("please input username for compartment creation")
-                # select_from_list_rich()
-                # config["oci_config"] = from_file("~/.oci/config", config["username"])
-                # identity_client = oci.identity.IdentityClient(config["oci_config"])
+                config["username"] = user_credential["user name"]
+                print(config["username"])
+                # config["oci_config"] = oci.config.from_file("~/.oci/config", config["username"])
+                # identity_client = oci.identity.IdentityClient(config_file, new_answer)
                 # tenancy = identity_client.get_tenancy(config["oci_config"]["tenancy"]).data
-                # config["tenancy_ocid"] = tenancy.id
-                #
                 # compartment_management(identity_client)
                 break
             elif choice == "n":
@@ -187,7 +186,3 @@ def main():
                 print("please input Y/n")
     except Exception as e:
         print(f"Exception in main: {e}")
-
-
-if __name__ == "__main__":
-    main()
