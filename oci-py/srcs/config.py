@@ -31,6 +31,7 @@ config = {
     "oci_config": {},
     "username": "",
     "tenancy_ocid": None,
+    "compartment_id": None,
     "compartment_name": "",
     "parent_compartment_id": None,
     "parent_compartment_name": ""

@@ -120,6 +120,29 @@ def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None
     except Exception as e:
         print(f"Error in create_compartment: {e}")
 
+def compartment_selection(identity_client: oci.identity.IdentityClient, config_file: dict) -> None:
+    all_compartments = {}
+
+    list_compartments = get_compartment_list(
+        identity_client,
+        config_file["oci_config"]["tenancy"],
+        "dk_company",
+        all_compartments
+    )
+    if not list_compartments:
+        raise ValueError(f"{RED}compartment not created or not found{RESET}")
+
+    list_compartments.update({EXIT_OPTION: EXIT_OPTION})
+    selected_compartment_name = inquire_display_dict(
+        list_compartments,
+        "Which compartment do you need ?")
+    if selected_compartment_name == EXIT_OPTION:
+        print(f"{RED}exit program ... {RESET}")
+        sys.exit(0)
+    selected_compartment_credential = list_compartments[selected_compartment_name]
+    config_file["parent_compartment_id"] = selected_compartment_credential["cmp_ocid"]
+    config_file["compartment_id"] = selected_compartment_credential["cmp_ocid"]
+
 #{
 #   'user_name': 'vincentRevole@admindev.com',
 #   'user_id': 'c00cae...',
@@ -132,26 +155,25 @@ def create_new_compartment(identity_client: oci.identity.IdentityClient) -> None
 #}
 def compartment_management(identity_client, config_file) -> None:
     try:
-        all_compartments = {}
-
-        list_compartments = get_compartment_list(
-            identity_client,
-            config_file["oci_config"]["tenancy"],
-            "dk_company",
-            all_compartments
-        )
-        if not list_compartments:
-            raise ValueError(f"{RED}compartment not created or not found{RESET}")
-
-        list_compartments.update({EXIT_OPTION: EXIT_OPTION})
-        selected_compartment_name = inquire_display_dict(
-            list_compartments,
-            "Which compartment do you need ?")
-        if selected_compartment_name == EXIT_OPTION:
-            print(f"{RED}exit program ... {RESET}")
-            sys.exit(0)
-        selected_compartment_credential = list_compartments[selected_compartment_name]
-        config_file["parent_compartment_id"] = selected_compartment_credential["cmp_ocid"]
+        compartment_selection(identity_client, config_file)
         create_new_compartment(identity_client)
+
+    except oci.exceptions.ServiceError as e:
+        # Erreurs retournées par l'API Oracle (ex: 403 Forbidden, 404 Not Found)
+        print(f"❌ OCI Service Error: status={e.status}, code={e.code}, message={e.message}")
+
+    except oci.exceptions.RequestException as e:
+        # Erreurs de connexion (ex: Timeout, pas d'internet)
+        print(f"📡 Network Error: Impossible de contacter les serveurs OCI. Vérifiez votre connexion.")
+
+    except KeyError as e:
+        # Erreur si le fichier config ou le dictionnaire est mal formé
+        print(f"🔑 Configuration Error: La clé {e} est manquante dans les credentials ou la config.")
+
+    except ValueError as e:
+        # Pour ton raise ValueError personnalisé (ex: compartiment non trouvé)
+        print(f"⚠️ Validation Error: {e}")
+
     except Exception as e:
-        print(f"Exception in compartment management: {e}")
+        # Le filet de sécurité pour tout le reste
+        print(f"🔥 Unexpected Error [{type(e).__name__}]: {e}")

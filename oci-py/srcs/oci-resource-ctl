@@ -8,6 +8,7 @@ import oci
 from config import config, YELLOW, RESET
 from dotenv import load_dotenv
 from compartiment import compartment_management
+from policy import policy_management
 from inquire_managment import (
     inquire_display_user_actions,
     inquirer_oci_users
@@ -49,7 +50,7 @@ def check_users_permissions(identity_client, identity_domains_client, tenancy_id
         "Policies", lambda: identity_client.list_policies(compartment_id=target_id, limit=1))
 
     g_status, g_response = validate_permissions(
-        "Groups", lambda: identity_domains_client.list_groups(limit=1))
+        "Groups", lambda: identity_domains_client.list_groups())
 
     u_status, u_response = validate_permissions(
         "Users", lambda: identity_domains_client.list_users(limit=1))
@@ -57,7 +58,7 @@ def check_users_permissions(identity_client, identity_domains_client, tenancy_id
     # 3. Construction sécurisée du dictionnaire de réponses
     # On utilise .data seulement si l'objet existe, sinon on met une liste vide []
     responses = {
-        "compartment": {"status": c_status, "data": c_response.data if c_status and c_response else []},
+        "compartments": {"status": c_status, "data": c_response.data if c_status and c_response else []},
         "policies": {"status": p_status, "data": p_response.data if p_status and p_response else []},
         "groups": {"status": g_status, "data": g_response.data if g_status and g_response else []},
         "users": {"status": u_status, "data": u_response.data if u_status and u_response else []}
@@ -95,15 +96,14 @@ def main():
                     identity_domains_client,
                     config["oci_config"]["tenancy"]
                 )
-
-                if "new compartment" in user_action and responses["compartment"]["status"] == True:
+                if "new compartment" in user_action and responses["compartments"]["status"] == True:
                     compartment_management(identity_client, config)
-                # elif "new policy" in user_action:
+                # elif "new group" in user_action:
                 #     policy_management(identity_client)
                 # elif "new user" in user_action:
                 #     policy_management(identity_client)
-                # elif "new group" in user_action:
-                #     policy_management(identity_client)
+                elif "new policy" in user_action and responses["policies"]["status"] == True:
+                    policy_management(identity_client, responses["groups"]["data"].resources, config)
                 break
     except oci.exceptions.ConfigFileNotFound as e:
         print(f'OCI ERROR Config file not found: {e}')
